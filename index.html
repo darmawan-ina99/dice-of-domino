@@ -924,8 +924,18 @@ var last=0;
 function loop(ts){
   var dt=Math.min(0.05,(ts-last)/1000||0.016);last=ts;
   step(dt);render();
-  requestAnimationFrame(loop);
+  
+setInterval(function(){
+  if(/ERR/.test(document.title))return;
+  document.title='D='+gD.toFixed(1)+' pos='+dice.map(function(d){return d.pos[0].toFixed(1);}).join(',')+' st='+dice.map(function(d){return d.state[0];}).join('');
+},1200);
+requestAnimationFrame(loop);
 }
+
+setInterval(function(){
+  if(/ERR/.test(document.title))return;
+  document.title='D='+gD.toFixed(1)+' pos='+dice.map(function(d){return d.pos[0].toFixed(1);}).join(',')+' st='+dice.map(function(d){return d.state[0];}).join('');
+},1200);
 requestAnimationFrame(loop);
 </script>
 </body>
