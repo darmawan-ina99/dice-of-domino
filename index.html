@@ -612,7 +612,6 @@ function render(){
   gl.drawElements(gl.TRIANGLES,6,gl.UNSIGNED_SHORT,0);
   // dadu
   gl.useProgram(pD);
-  gl.uniformMatrix4fv(uD.mvp,false,m4mul(P,Vm));
   gl.uniform3fv(uD.cam,new Float32Array(eye));
   gl.uniform3fv(uD.la,new Float32Array(LA));
   gl.uniform3fv(uD.lb,new Float32Array(LB));
@@ -632,6 +631,7 @@ function render(){
     var d2=dice[i12];
     var M2=m4trs(d2.q,d2.pos);
     gl.uniformMatrix4fv(uD.model,false,M2);
+    gl.uniformMatrix4fv(uD.mvp,false,m4mul(P,m4mul(Vm,M2)));
     gl.uniform1f(uD.sym,i12===5?1:0);
     gl.uniform1f(uD.row,i12<5?i12:0);
     gl.drawElements(gl.TRIANGLES,idata.length,gl.UNSIGNED_SHORT,0);
