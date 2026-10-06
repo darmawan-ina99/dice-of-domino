@@ -720,7 +720,8 @@ function renderActions(){
   potBtn.textContent='💣 POT: '+fmt(game.pot);
   if(game.state==='bet'){
     var p=game.players[game.act];
-    info.textContent='RONDE '+game.roundNo+' — '+p.name+' memilih kartu & pasang';
+    var sisa=game.players.filter(function(pp){return !pp.done;}).length;
+    info.textContent='RONDE '+game.roundNo+' — '+p.name+' memilih kartu & pasang (sisa '+sisa+' pemain)';
     var chips=[500,1000,2000,5000];
     chips.forEach(function(v){
       var b=document.createElement('button');b.className='chip';
@@ -733,6 +734,9 @@ function renderActions(){
     st.disabled=!(game.pendingCard&&game.pendingStake>0);
     st.onclick=commitBet;
     el.appendChild(st);
+    var sk=document.createElement('button');sk.className='chip';sk.textContent='LEWATI';
+    sk.onclick=skipPlayer;
+    el.appendChild(sk);
     var undo=document.createElement('button');undo.className='chip';undo.textContent='↺';
     undo.onclick=function(){game.pendingStake=0;game.pendingCard=null;refreshUI();};
     el.appendChild(undo);
@@ -758,20 +762,28 @@ function pickCard(tl){
   game.pendingCard=(game.pendingCard===tl)?null:tl;
   refreshUI();
 }
+function nextPlayer(){
+  var nxt=-1;
+  for(var i16=0;i16<game.players.length;i16++){
+    if(!game.players[i16].done){nxt=i16;break;}
+  }
+  if(nxt<0){game.state='ready';}
+  else game.act=nxt;
+}
 function commitBet(){
   var p=game.players[game.act];
   if(!game.pendingCard||game.pendingStake<=0||p.coins<game.pendingStake)return;
   p.bet={card:game.pendingCard,stake:game.pendingStake};
   p.coins-=game.pendingStake;
+  p.done=true;
   game.pendingCard=null;game.pendingStake=0;
-  // pemain berikutnya yang belum pasang
-  var nxt=-1;
-  for(var i16=0;i16<game.players.length;i16++){
-    if(!game.players[i16].bet){nxt=i16;break;}
-  }
-  if(nxt<0){game.state='ready';}
-  else game.act=nxt;
-  save();refreshUI();
+  nextPlayer();save();refreshUI();
+}
+function skipPlayer(){
+  var p=game.players[game.act];
+  p.done=true;p.bet=null;
+  game.pendingCard=null;game.pendingStake=0;
+  nextPlayer();refreshUI();
 }
 function tryRoll(){
   if(game.state!=='ready'||!allRest())return;
@@ -838,7 +850,7 @@ function settleRound(){
   game.roundNo++;
   game.history.unshift({r:game.roundNo,t:tiles.join('  '),b:bonus,bom:bom?'Ya':'Tidak'});
   game.history=game.history.slice(0,10);
-  game.players.forEach(function(p){p.bet=null;});
+  game.players.forEach(function(p){p.bet=null;p.done=null;});
   game.pendingCard=null;game.pendingStake=0;
   game.act=0;
   save();
@@ -881,13 +893,22 @@ function showHistory(){
 }
 document.getElementById('histBtn').onclick=showHistory;
 document.getElementById('potBtn').onclick=function(){alert('Bomb Pot: '+fmt(game.pot)+' 🪙\n\nSetiap ronde BOM, semua taruhan masuk pot ini. BOM ganda (💣 wajah domino + 💣 bonus die) membagi setengah pot ke pemain yang kartunya HIT.');};
-cv.addEventListener('pointerdown',function(){tryRoll();});
+cv.addEventListener('pointerdown',function(){
+  if(game.state==='bet'){
+    var sisa=game.players.filter(function(pp){return !pp.done;}).length;
+    var m3=document.getElementById('msg');
+    m3.innerHTML='<div class="m2">Pasang taruhan semua pemain dulu — sisa '+sisa+' pemain. Tekan LEWATI untuk melompati.</div>';
+    setTimeout(function(){m3.innerHTML='';},2200);
+    return;
+  }
+  tryRoll();
+});
 
 // ================= SETUP =================
 function startGame(np){
   game.players=[];
   for(var i18=0;i18<np;i18++)
-    game.players.push({name:'Pemain '+'ABCDE'[i18],coins:25000,bet:null,last:null});
+    game.players.push({name:'Pemain '+'ABCDE'[i18],coins:25000,bet:null,done:null,last:null});
   game.state='bet';game.roundNo=1;game.act=0;
   openCards();save();refreshUI();
 }
@@ -912,7 +933,7 @@ function startGame(np){
   var cb=md.querySelector('#cont');
   if(cb)cb.onclick=function(){
     md.remove();
-    game.players=sv.players.map(function(p,i19){return {name:p.name,coins:p.coins,bet:null,last:null};});
+    game.players=sv.players.map(function(p,i19){return {name:p.name,coins:p.coins,bet:null,done:null,last:null};});
     game.pot=sv.pot||50000;game.roundNo=sv.roundNo||1;game.history=sv.history||[];
     game.state='bet';game.act=0;
     openCards();refreshUI();
